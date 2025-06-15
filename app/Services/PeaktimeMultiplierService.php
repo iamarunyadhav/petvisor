@@ -42,9 +42,34 @@ class PeaktimeMultiplierService
     {
         if ($planId) {
             $peaktimes = $this->peaktimeMultiplierRepository->getPeaktimeByPlanId($planId);
-        } else {
-            $peaktimes = $this->peaktimeMultiplierRepository->getAllPeaktimes();
         }
         return $peaktimes;
+    }
+
+    public function getPeaktimeAll()
+    {
+        $peaktimes = $this->peaktimeMultiplierRepository->getAllPeaktimes();
+        return $peaktimes;
+    }
+
+
+    public function updatePeak($id, $request)
+    {
+        // dd($id, $request);
+        $peaktime = $this->peaktimeMultiplierRepository->getPeaktimeById($id);
+        if (!$peaktime) {
+            throw new InvalidMeterIdException("Peaktime multiplier not found with ID: " . $id);
+        }
+
+        $peaktime->dayofWeek = $request->input('dayofWeek', $peaktime->dayofWeek);
+        $peaktime->multiplier = $request->input('multiplier', $peaktime->multiplier);
+
+        // dd($peaktime->toArray());
+
+        return $this->peaktimeMultiplierRepository->updatePeaktime($id,$peaktime->toArray());
+    }
+    public function deletePeaktime($id): bool
+    {
+        return $this->peaktimeMultiplierRepository->deletePeaktime($id);
     }
 }

@@ -46,6 +46,25 @@ class PeaktimeMultiplierRepository implements IPeaktimeMultiplierRepository
         return PeaktimeMultiplier::all();
     }
 
+     function getPeaktimeById($id)
+     {
+        return PeaktimeMultiplier::find($id);
+
+     }
+    function updatePeaktime($id, $data)
+    {
+        // dd($id, $data);
+        $updated=PeaktimeMultiplier::where('id', $id)->update($data);
+        return $updated ? 'success' : 'failed';
+
+    }
+
+    function deletePeaktime($id): bool
+    {
+        $deleted = PeaktimeMultiplier::where('id', $id)->delete();
+        return $deleted ? true : false;
+    }
+
 }
 
 

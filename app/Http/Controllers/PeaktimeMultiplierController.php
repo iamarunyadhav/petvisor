@@ -18,10 +18,26 @@ class PeaktimeMultiplierController extends Controller
         $this->peaktimeMultiplierService = $peaktimeMultiplierService;
     }
 
-    public function index($planId=null)
+    public function index($planId = null)
     {
         try {
             $peaktimes = $this->peaktimeMultiplierService->getPeaktime($planId);
+            return response()->json($peaktimes);
+        } catch (InvalidMeterIdException $exception) {
+            return response()->json($exception->getMessage());
+        }
+        if ($peaktimes->isEmpty()) {
+            return response()->json("No peaktime multipliers available", Response::HTTP_NOT_FOUND);
+        }
+
+        return response()->json($peaktimes, Response::HTTP_OK);
+    }
+
+    public function indexAll()
+    {
+
+        try {
+            $peaktimes = $this->peaktimeMultiplierService->getPeaktimeAll();
             return response()->json($peaktimes);
         } catch (InvalidMeterIdException $exception) {
             return response()->json($exception->getMessage());
@@ -35,12 +51,6 @@ class PeaktimeMultiplierController extends Controller
         return response()->json($peaktimes, Response::HTTP_OK);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
     public function store(Request $request,$planId)
     {
         // Validate the request data
@@ -70,18 +80,43 @@ class PeaktimeMultiplierController extends Controller
 
     public function update(Request $request, $id)
     {
+        // dd($request->all(), $id);
+        $request->validate([
+            'dayofWeek' => 'required|string|in:Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday',
+            'multiplier' => 'required|numeric|min:1',
+        ]);
+        try {
+            $peaktime = $this->peaktimeMultiplierService->updatePeak($id, $request);
+        } catch (InvalidMeterIdException $exception) {
+            return response()->json($exception->getMessage());
+        }
+        if ($peaktime) {
+            return response()->json("Peak time updated successfully", 200);
+        }
+        return response()->json("No peak time available to update", Response::HTTP_BAD_REQUEST);
 
     }
 
-
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
     public function destroy($id)
     {
-
+        try{
+            $peaktime = $this->peaktimeMultiplierService->getPeaktime($id);
+            dd($peaktime);
+            if ($peaktime->isEmpty()) {
+                return response()->json("No peaktime multipliers available with ID: " . $id, Response::HTTP_NOT_FOUND);
+            }
+            $peaktime = $peaktime->first();
+            if (!$peaktime) {
+                return response()->json("Peaktime multiplier not found with ID: " . $id, Response::HTTP_NOT_FOUND);
+            }
+            $deleted = $this->peaktimeMultiplierService->deletePeaktime($id);
+            if ($deleted) {
+                return response()->json("Peak time deleted successfully", 200);
+            }
+            return response()->json("No peak time available to delete", Response::HTTP_BAD_REQUEST);
+        }
+        catch (InvalidMeterIdException $exception) {
+            return response()->json($exception->getMessage());
+        }
     }
 }

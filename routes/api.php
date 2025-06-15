@@ -30,6 +30,7 @@ Route::get('price-plan/{smartMeterId}/comparisons', [PricePlanComparatorControll
 
 
 Route::post('/price-plans/{planId}/peak-multipliers', [PeaktimeMultiplierController::class, 'store']);
-Route::get('/price-plans/{planId}/peak-multipliers', [PeakTimeMultiplierController::class, 'index']);
+Route::get('/price-plans/{planId?}/peak-multipliers', [PeakTimeMultiplierController::class, 'index']);
+Route::get('/price-plans/peak-multipliers', [PeakTimeMultiplierController::class, 'indexAll']);
 Route::patch('/peak-multipliers/{id}', [PeakTimeMultiplierController::class, 'update']);
 Route::delete('/peak-multipliers/{id}', [PeakTimeMultiplierController::class, 'destroy']);

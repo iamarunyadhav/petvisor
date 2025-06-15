@@ -19,4 +19,8 @@ interface IPeaktimeMultiplierRepository
     function getPeaktimeByPlanId($planId): Collection;
     function getAllPeaktimes(): Collection;
 
+    function getPeaktimeById($id);
+    function updatePeaktime($id, $data);
+    function deletePeaktime($id):bool;
+
 }

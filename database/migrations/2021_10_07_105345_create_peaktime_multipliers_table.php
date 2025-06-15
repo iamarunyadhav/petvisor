@@ -20,7 +20,7 @@ class CreatePeaktimeMultipliersTable extends Migration
             $table->unsignedBigInteger('price_plan_id');
             $table->foreign('price_plan_id')->references('id')->on('price_plans');
             $table->timestamps();
-            $table->unique(['price_plan_id', 'dayofWeek']);
+            // $table->unique(['price_plan_id', 'dayofWeek']);
         });
     }
 
