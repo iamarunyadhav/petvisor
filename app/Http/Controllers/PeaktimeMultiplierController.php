@@ -3,97 +3,85 @@
 namespace App\Http\Controllers;
 
 use App\Exceptions\InvalidMeterIdException;
-use App\Models\ElectricityReadings;
 use App\Models\PeaktimeMultiplier;
 use App\Models\SmartMeter;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use App\Services\PeaktimeMultiplierService;
-use Carbon\Carbon;
 
 class PeaktimeMultiplierController extends Controller
 {
-    public function index($planId)
+    private $peaktimeMultiplierService;
+
+    public function __construct(PeaktimeMultiplierService $peaktimeMultiplierService)
     {
-      return PeaktimeMultiplier::where('id',$planId)->get();
+        $this->peaktimeMultiplierService = $peaktimeMultiplierService;
     }
 
-    public function indexAll()
+    public function index($planId=null)
     {
-        return PeaktimeMultiplier::all();
+        try {
+            $peaktimes = $this->peaktimeMultiplierService->getPeaktime($planId);
+            return response()->json($peaktimes);
+        } catch (InvalidMeterIdException $exception) {
+            return response()->json($exception->getMessage());
+        }
+
+
+        if ($peaktimes->isEmpty()) {
+            return response()->json("No peaktime multipliers available", Response::HTTP_NOT_FOUND);
+        }
+
+        return response()->json($peaktimes, Response::HTTP_OK);
     }
 
+    /**
+     * Store a newly created resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
     public function store(Request $request,$planId)
     {
-        //validte the source
-        $data=$request->validate([
-           'dayofWeek'=>'required|string|in:Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday',
-           'multiplier'=>'required|numeric|min:1'
-        ]);
-        $data['price_plan_id']=$planId;
-
-        $created=PeaktimeMultiplier::create($data);
-        if($created)
-        {
-            return response()->json('success',200);
-        }
-         return response()->json('fail',400);
-    }
-
-    public function update(Request $request,$id)
-    {
-        //validte the source
-        $data=$request->validate([
-           'dayofWeek'=>'required|string',
-           'multiplier'=>'required|numeric|min:1'
+        // Validate the request data
+        $request->validate([
+            'dayofWeek' => 'required|string|in:Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday',
+            'multiplier' => 'required|numeric|min:1',
         ]);
 
-        $multiplier=PeaktimeMultiplier::findOrFail($id);
-        $multiplier->update($data);
-
-        return response()->json($multiplier);
-    }
-
-    public function delete($id)
-    {
-        $multiplier=PeaktimeMultiplier::findOrFail($id);
-        $multiplier->delete();
-
-        return response()->json(['status'=>'success'],204);
-
-    }
-
-    public function calculateBill(Request $request)
-    {
-        $smartMeterId = $request->input('smartMeterId');
-        $from = Carbon::parse($request->input('from'))->format('Y-m-d H:i:s');
-        $to = Carbon::parse($request->input('to'))->format('Y-m-d H:i:s');
-
-        $readings = ElectricityReadings::where('smart_meter_id', $smartMeterId)
-            ->whereBetween('time', [$from, $to])
-            ->get();
-
-        $smartMeter = SmartMeter::find($smartMeterId);
-        if (!$smartMeter) return response()->json(['error' => 'Smart meter not found'], 404);
-
-        $plan = $smartMeter->pricePlan;
-        if (!$plan) return response()->json(['error' => 'Price plan not found'], 404);
-
-        $multipliers = PeaktimeMultiplier::where('price_plan_id', $plan->id)->get()->keyBy('dayofWeek');
-
-        $total = 0;
-        foreach ($readings as $reading) {
-
-            $day = Carbon::parse($reading->time)->format('l'); // 'Monday', etc
-            $multiplier = $multipliers[$day]->multiplier ?? 1; // If no multiplier, use 1
-            $cost = $reading->reading * $plan->unit_rate * $multiplier;
-            $total += $cost;
+        $isValidPlan=$this->peaktimeMultiplierService->validatePricePlanId($planId);
+        if (!$isValidPlan) {
+            return response()->json(['error' => 'Invalid price plan ID'], Response::HTTP_BAD_REQUEST);
+        }
+        // Create a new PeaktimeMultiplier instance
+         try {
+            $peaktime = $this->peaktimeMultiplierService->createPeak($request,$planId);
+        } catch (InvalidMeterIdException $exception) {
+            return response()->json($exception->getMessage());
         }
 
+        if ($peaktime) {
+            return response()->json("Peak time inserted successfully", 201);
+        }
 
-        return response()->json(['total' => $total]);
+        return response()->json("No peak time available to insert", Response::HTTP_BAD_REQUEST);
     }
 
 
+    public function update(Request $request, $id)
+    {
+
+    }
+
+
+    /**
+     * Remove the specified resource from storage.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function destroy($id)
+    {
+
+    }
 }
-
