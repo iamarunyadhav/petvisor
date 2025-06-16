@@ -34,3 +34,6 @@ Route::get('/price-plans/{planId?}/peak-multipliers', [PeakTimeMultiplierControl
 Route::get('/price-plans/peak-multipliers', [PeakTimeMultiplierController::class, 'indexAll']);
 Route::patch('/peak-multipliers/{id}', [PeakTimeMultiplierController::class, 'update']);
 Route::delete('/peak-multipliers/{id}', [PeakTimeMultiplierController::class, 'destroy']);
+
+
+Route::get('/bill', [PeakTimeMultiplierController::class, 'calculateBill']);
